@@ -1,0 +1,56 @@
+find_package(ament_cmake_gmock REQUIRED)
+find_package(state_lib REQUIRED)
+
+ament_add_gmock(test_base_uniform_2d test_base_uniform_2d.cpp)
+ament_target_dependencies(test_base_uniform_2d state_lib)
+target_link_libraries(test_base_uniform_2d
+  vehicle_models
+)
+
+ament_add_gmock(test_uniform_2d test_uniform_2d.cpp)
+ament_target_dependencies(test_uniform_2d state_lib)
+target_link_libraries(test_uniform_2d
+  vehicle_models
+)
+
+ament_add_gmock(test_base_angular_accel_2d test_base_angular_accel_2d.cpp)
+ament_target_dependencies(test_base_angular_accel_2d state_lib)
+target_link_libraries(test_base_angular_accel_2d
+  vehicle_models
+)
+
+ament_add_gmock(test_angular_accel_2d test_angular_accel_2d.cpp)
+ament_target_dependencies(test_angular_accel_2d state_lib)
+target_link_libraries(test_angular_accel_2d
+  vehicle_models
+)
+
+ament_add_gmock(test_base_acceleration test_base_acceleration.cpp)
+ament_target_dependencies(test_base_acceleration state_lib)
+target_link_libraries(test_base_acceleration
+  vehicle_models
+)
+
+ament_add_gmock(test_acceleration test_acceleration.cpp)
+ament_target_dependencies(test_acceleration state_lib)
+target_link_libraries(test_acceleration
+  vehicle_models
+)
+
+ament_add_gmock(test_base_dynamic_bicycle test_base_dynamic_bicycle.cpp)
+ament_target_dependencies(test_base_dynamic_bicycle state_lib)
+target_link_libraries(test_base_dynamic_bicycle
+  vehicle_models
+)
+
+ament_add_gmock(test_dynamic_bicycle test_dynamic_bicycle.cpp)
+ament_target_dependencies(test_dynamic_bicycle state_lib)
+target_link_libraries(test_dynamic_bicycle
+  vehicle_models
+)
+
+ament_add_gmock(test_base_kinematic_bicycle test_base_kinematic_bicycle.cpp)
+ament_target_dependencies(test_base_kinematic_bicycle state_lib)
+target_link_libraries(test_base_kinematic_bicycle
+  vehicle_models
+)

@@ -1,0 +1,40 @@
+# NOTE: This data is not correct, it is based on sketchy calculations
+
+inertia:
+  m:        300.0      # Weight of the Vehicle [kg]
+  g:        9.81       # Gravity force         [m/s^2]
+  I_z:      1.503e+02    # Inertial force I_z
+
+kinematic:
+  l: 1.53              # Vehicle Length [m]
+  w_front: 4.930e-01       # Fraction of weight front
+  axle_width: 1.2
+
+tyre:
+  A: 3.669
+  B: 2.246
+  C: 0.1003
+  radius: 0.2525
+  rolling_resistance: 1.746e-02
+
+powertrain:
+  overdrive: 4.970e-02
+
+aero:
+  C_down: 9.742e-01        # F_Downforce = C_Downforce*v_x^2
+  C_drag: 0.0      # F_Drag = C_Drag*v_x^2
+
+input_ranges:
+  acceleration:
+    max: 5.2
+    min: -5.2
+  velocity:
+    max: 30.0
+    min: 0.0
+  steering:
+    max: 0.37
+    min: -0.37
+
+
+#[ 1.503e+02  4.930e-01  3.669e+00  2.246e+00  1.003e-01
+#            1.746e-02  4.970e-02  9.742e-01  0.000e+00]

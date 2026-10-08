@@ -1,0 +1,27 @@
+# Line endings.
+#
+# Most of us are on Windows, but everything runs inside a Linux container. A
+# shell script checked out with CRLF line endings fails there with
+#   bad interpreter: /usr/bin/env bash^M: no such file or directory
+# and CRLF in the track .csv files breaks the C++ map parser. So: store and
+# check out every text file with LF, on every platform.
+
+* text=auto eol=lf
+
+# Belt and braces for the files that must be LF.
+*.sh    text eol=lf
+*.csv   text eol=lf
+tools/bri text eol=lf
+
+# Binary: never apply line-ending or text conversion.
+*.foxe  binary
+*.stl   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.pdf   binary
+*.pt    binary
+*.onnx  binary
+*.db3   binary
+*.mcap  binary

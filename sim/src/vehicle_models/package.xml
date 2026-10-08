@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>vehicle_models</name>
+  <version>1.0.0</version>
+  <description>A library of vehicle models.</description>
+  <maintainer email="cambobmat@icloud.com">Cameron Matthew</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>yaml-cpp</depend>
+  <depend>rclcpp</depend>
+  <depend>eigen</depend>
+  <depend>state_lib</depend>
+  <depend>angles</depend>
+
+  <test_depend>eufs_gmock_matchers</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

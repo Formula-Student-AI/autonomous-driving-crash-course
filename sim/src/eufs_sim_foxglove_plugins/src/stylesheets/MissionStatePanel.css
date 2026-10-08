@@ -1,0 +1,87 @@
+.curr_state {
+    display: flex;
+    align-items: end;
+    justify-items: left;
+    font-size: 1vw;
+    font-weight: bolder;
+}
+.custom-dropdown {
+    z-index: 40;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-items: center;
+    align-items: center;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    background-color: rgba(53, 54, 58, 1);
+    font-size: 1vw;
+    text-align: center;
+    font-weight: bolder;
+    color: white;
+    cursor: pointer;
+    outline: none;
+    border: none;
+}
+.custom-dropdown:focus {
+    outline: none;
+}
+/* Style for the dropdown arrow */
+.custom-dropdown::after {
+    outline: none;
+    content: '▼';
+    color: white;
+    position: absolute;
+    top: 50%;
+    right: 0.5em;
+    transform: translateY(-50%);
+}
+.custom-dropdown > option {
+    outline: none;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(30, 30, 30, 1)
+}
+.middle_block {
+    z-index: 0;
+    background-color: rgb(48,49,53);
+    box-shadow: inset 0 10px 15px -10px rgba(0, 0, 0, 0.5), inset 0 -10px 15px -10px rgba(0, 0, 0, 0.5);
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    font-size: 0.7em;
+    padding: 1vh;
+    transition: box-shadow 0.3s ease-in-out;
+
+}
+.middle_block:hover {
+    box-shadow: inset 0 10px 20px -10px rgba(0, 0, 0, 0.6), inset 0 -10px 20px -10px rgba(0, 0, 0, 0.6);
+}
+.suppress_selection:hover {
+    background-color: rgb(20, 100, 10);
+}
+button {
+    background-color: rgba(53, 54, 58, 1);
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    font-size: 1vw;
+    text-align: center;
+    font-weight: bolder;
+    color: white;
+    outline: none;
+    border: none;
+    box-shadow: none;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    transition: text-shadow 0.2s;
+}
+button:hover {
+    background-color: rgba(53, 84, 58, 1);
+    cursor: pointer;
+    text-shadow: 0px 0px 7px rgba(255, 255, 255, 0.4)
+}

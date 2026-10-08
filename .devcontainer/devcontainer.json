@@ -1,0 +1,51 @@
+{
+  "name": "fsai-crash-course",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "args": { "USERNAME": "vscode" }
+  },
+  "remoteUser": "vscode",
+
+  // Foxglove connects to the bridge on this port. Dev Containers forwards it to
+  // the host, which works the same on Windows, macOS and Linux (unlike
+  // --network=host, which behaves differently on each).
+  "forwardPorts": [8765],
+  "portsAttributes": {
+    "8765": { "label": "foxglove_bridge", "onAutoForward": "silent" }
+  },
+
+  "containerEnv": {
+    // Used by /etc/bash.bashrc to source the simulator once it is built.
+    "FSAI_WS": "${containerWorkspaceFolder}",
+    // Keep ROS traffic on loopback so two people on the same network (or two
+    // containers on one machine) cannot see each other's nodes and topics.
+    "ROS_LOCALHOST_ONLY": "1"
+  },
+
+  // Put the bri helper on PATH.
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/tools:${containerEnv:PATH}"
+  },
+
+  // Runs once, when the container is first created: build the simulator so
+  // students never have to. Takes a few minutes (it is C++).
+  "postCreateCommand": "bash .devcontainer/build-sim.sh",
+
+  // Start the Foxglove bridge in the background every time the container starts.
+  "postStartCommand": "bash -c 'source /opt/ros/humble/setup.bash && nohup ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765 > /tmp/foxglove_bridge.log 2>&1 &'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "twxs.cmake",
+        "ms-iot.vscode-ros"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

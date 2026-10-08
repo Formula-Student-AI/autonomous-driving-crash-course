@@ -1,0 +1,61 @@
+{
+  "name": "eufs-sim-foxglove-plugins",
+  "displayName": "eufs-sim-foxglove-plugins",
+  "description": "A foxglove extension for eufs_sim & eufs_sim2",
+  "publisher": "Edinburgh University Formula Student",
+  "homepage": "https://gitlab.com/eufs/simulation_group/eufs-sim-foxglove-plugins",
+  "version": "0.0.1",
+  "license": "MIT LICENSE",
+  "main": "./dist/extension.js",
+  "keywords": [
+    "eufs_sim",
+    "eufs_sim2",
+    "simulation",
+    "formula student",
+    "FSUK",
+    "eufs"
+  ],
+  "scripts": {
+    "build": "foxglove-extension build",
+    "foxglove:prepublish": "foxglove-extension build --mode production",
+    "lint:ci": "eslint --report-unused-disable-directives .",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "generate-msg-types": "tsx src/utils/ros-typescript-generator.ts",
+    "local-install": "foxglove-extension install",
+    "package": "foxglove-extension package",
+    "pretest": "foxglove-extension pretest"
+  },
+  "devDependencies": {
+    "@foxglove/eslint-plugin": "1.0.0",
+    "@foxglove/studio": "1.75.0",
+    "@types/lodash": "^4.14.200",
+    "@types/react": "18.2.34",
+    "@types/react-dom": "18.2.14",
+    "@typescript-eslint/eslint-plugin": "6.9.1",
+    "@typescript-eslint/parser": "6.9.1",
+    "create-foxglove-extension": "0.8.6",
+    "css-loader": "^6.8.1",
+    "eslint": "8.53.0",
+    "eslint-config-prettier": "8.10.0",
+    "eslint-plugin-es": "4.1.0",
+    "eslint-plugin-filenames": "1.3.2",
+    "eslint-plugin-import": "2.29.0",
+    "eslint-plugin-jest": "27.6.0",
+    "eslint-plugin-prettier": "5.0.1",
+    "eslint-plugin-react": "7.33.2",
+    "eslint-plugin-react-hooks": "4.6.0",
+    "lodash": "^4.17.21",
+    "mathjs": "^11.5.1",
+    "nipplejs": "^0.10.1",
+    "prettier": "3.0.3",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "style-loader": "^3.3.3",
+    "tsx": "^3.12.2",
+    "typescript": "5.2.2"
+  },
+  "dependencies": {
+    "node": "^20.14.0"
+  }
+}

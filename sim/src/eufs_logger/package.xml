@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>eufs_logger</name>
+  <version>0.0.0</version>
+  <description>A package containing useful logging utilities.</description>
+  <maintainer email="siliconlad@protonmail.com">Angus Stewart</maintainer>
+  <license>MIT</license>
+
+  <url type="website">http://eufs.co</url>
+  <url type="repository">https://gitlab.com/eufs/localisation_group/slam/eufs_logger</url>
+  <url type="bugtracker">https://gitlab.com/eufs/localisation_group/slam/eufs_logger/issues</url>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>spdlog</depend>
+  <depend>eigen</depend>
+  <depend>fmt</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

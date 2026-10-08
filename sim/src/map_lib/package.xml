@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>map_lib</name>
+  <version>0.0.0</version>
+  <description>A library for all code related to maps and cones.</description>
+  
+  <maintainer email="siliconlad@protonmail.com">Angus Stewart</maintainer>
+  
+  <url type="website">http://eufs.co</url>
+  <url type="repository">https://gitlab.com/eufs/localisation_group/map_lib</url>
+  <url type="bugtracker">https://gitlab.com/eufs/localisation_group/map_lib/issues</url>
+  
+  <license>MIT</license>
+  
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+
+  <!-- CMakeLists.txt does find_package(pybind11_vendor REQUIRED) for the Python
+       bindings; without this the build only works if something else (e.g. the
+       full ros-humble-desktop metapackage) happens to pull it in. -->
+  <depend>pybind11_vendor</depend>
+
+  <depend>rqt_gui</depend>
+
+  <exec_depend>python3-pil</exec_depend>
+  <exec_depend>python3-pandas</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-matplotlib</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-qt5-bindings</exec_depend>
+  <exec_depend>qt_gui</exec_depend>
+
+  <depend>eufs_msgs</depend>
+  <depend>libjsoncpp-dev</depend>
+  <depend>eigen</depend>
+  <depend>ament_cmake_gmock</depend>
+  <depend>eufs_gmock_matchers</depend>
+  <depend>eufs_logger</depend>
+  <depend>angles</depend>
+
+  <test_depend>rclcpp</test_depend>
+  <test_depend>eigen</test_depend>
+  <test_depend>ament_cmake_gmock</test_depend>
+  <test_depend>eufs_gmock_matchers</test_depend>
+
+  <test_depend>python3-scipy</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <rqt_gui plugin="${prefix}/plugin.xml"/>
+  </export>
+</package>

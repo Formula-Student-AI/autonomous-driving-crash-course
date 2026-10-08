@@ -1,0 +1,7 @@
+tag,x,y,direction,x_variance,y_variance,xy_covariance
+yellow,0,0,0,0.4,0.2,0
+blue,2.4,2,0,0.4,0.2,0
+blue,0,2.4,0,0.4,0.2,0
+yellow,2.2,0,0,0.4,0.2,0
+orange,1.2,1,0,0.4,0.2,0
+orange,2,2.2,0,0.2,0.4,0.4

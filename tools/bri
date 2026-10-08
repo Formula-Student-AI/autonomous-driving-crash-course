@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# bri - a few shortcuts for the commands you type most often.
+#
+# Deliberately small: every command below is one or two plain ROS commands, and
+# this whole file is meant to be read in a minute. If you want to know what a
+# shortcut does, it is printed right here. Nothing is hidden.
+
+set -euo pipefail
+
+# Mission numbers come from sim/src/eufs_msgs/srv/SetMission.srv
+mission_number() {
+    case "${1,,}" in
+        acceleration|accel|1) echo 1 ;;
+        skidpad|2)            echo 2 ;;
+        autocross|3)          echo 3 ;;
+        trackdrive|track|4)   echo 4 ;;
+        *) echo "bri: unknown mission '$1' (acceleration|skidpad|autocross|trackdrive)" >&2
+           exit 1 ;;
+    esac
+}
+
+# Nearest workspace at or above the current directory (a folder containing src/).
+find_workspace() {
+    local dir="$PWD"
+    while [[ "$dir" != "/" ]]; do
+        [[ -d "$dir/src" ]] && { echo "$dir"; return 0; }
+        dir="$(dirname "$dir")"
+    done
+    echo "bri: no workspace found here (looked for a folder containing src/)" >&2
+    exit 1
+}
+
+usage() {
+    cat <<'EOF'
+bri - shortcuts for this course
+
+  bri sim                 Launch the simulator
+                          = ros2 launch eufs_sim2 eufs_sim2.launch.py
+
+  bri go [mission]        Select a mission and send GO (default: trackdrive)
+                          = ros2 service call /set_mission eufs_msgs/srv/SetMission "{mission: N}"
+                            ros2 service call /go std_srvs/srv/Trigger "{}"
+                          Missions: acceleration, skidpad, autocross, trackdrive
+
+  bri build [pkg...]      Build the workspace you are in (or just these packages)
+                          = colcon build --symlink-install [--packages-select pkg...]
+
+  bri help                This message
+
+Everything bri does, you can do by hand. The raw commands are printed above and
+used throughout the course modules.
+EOF
+}
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+    sim)
+        exec ros2 launch eufs_sim2 eufs_sim2.launch.py "$@"
+        ;;
+
+    go)
+        n="$(mission_number "${1:-trackdrive}")"
+        ros2 service call /set_mission eufs_msgs/srv/SetMission "{mission: $n}"
+        ros2 service call /go std_srvs/srv/Trigger "{}"
+        echo "Mission set and GO sent. The car will now act on /cmd."
+        ;;
+
+    build)
+        ws="$(find_workspace)"
+        cd "$ws"
+        echo "Building workspace: $ws"
+        if [[ $# -eq 0 ]]; then
+            colcon build --symlink-install
+        else
+            colcon build --symlink-install --packages-select "$@"
+        fi
+        echo
+        echo "Done. In this terminal, run:  source $ws/install/setup.bash"
+        ;;
+
+    help|-h|--help)
+        usage
+        ;;
+
+    *)
+        echo "bri: unknown command '$cmd'" >&2
+        echo >&2
+        usage >&2
+        exit 1
+        ;;
+esac

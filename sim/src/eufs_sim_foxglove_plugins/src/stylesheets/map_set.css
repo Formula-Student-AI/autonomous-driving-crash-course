@@ -1,0 +1,36 @@
+.middle_block_alpha {
+    background-color: rgb(53,54,58);
+    border-radius: 1vh;
+    height: 30%;
+    width: 90%;
+    display: grid;
+    grid-template-columns: 80% 20%;
+}
+.set_map {
+    background-color: rgb(64, 122, 0);
+    height: 100%;
+    width: 100%;
+    border-top-right-radius: 1vh;
+    border-bottom-right-radius: 1vh;
+    color: white;
+    font-size: 1vw;
+    outline: none;
+    font-weight: bolder;
+    transition: background-color 0.2s ease ;
+}
+.set_map:hover{
+    background-color: rgb(54, 82, 0);
+    cursor: pointer;
+}
+button {
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    outline: none;
+    /* Additional styles as needed */
+}
+

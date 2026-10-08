@@ -1,0 +1,46 @@
+.main_switch_background{
+    background-color: rgb(50, 50, 50);
+    box-shadow: inset 0px 0px 20px 5px rgba(0, 0, 0, 0.5);
+    border: solid 5px rgb(92,92,99);
+    width: 70%; /* 20% */
+    height: 70%;
+    max-width: 100px;
+    margin: 4vh;
+    border-radius: 15px;
+    transition: background-color 0.5s ease;
+}
+.main_switch_button{
+    width: 90%;
+    height: 40%;
+    margin: 5%;
+    background-color: rgb(92,92,99) !important;
+    box-shadow: 0px 0px 20px 10px rgba(0, 0, 0, 0.3);
+    border-radius: 40px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+.main_switch_button:hover {
+    box-shadow: 0px 0px 20px 10px rgba(0, 0, 0, 0.4);
+    background-color: rgb(120, 120, 120) !important;
+    /*border-radius: 40px;*/
+}
+.switch_up{
+    top: 0;
+}
+.switch_down{
+    top: 57%;
+}
+
+.ebs_main{
+    border-radius: 100%;
+    width: 10%;
+    height: 10%;
+    background-color: rgb(137, 34, 0);
+    border: solid 5px rgb(92,92,99) !important;
+    box-shadow: inset 0px 0px 10px 10px rgba(0, 0, 0, 0.5);
+    transition: all 0.2s ease;
+}
+.ebs_main:hover{
+    background-color: rgb(157, 54, 20);
+    box-shadow: inset 0px 0px 20px 20px rgba(0, 0, 0, 0.5);
+}

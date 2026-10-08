@@ -1,0 +1,35 @@
+# One .gitignore for the whole repository. The simulator packages in sim/src
+# arrived with their own large .gitignore files from upstream; those were
+# removed because two of their rules silently excluded real source files
+# (the Foxglove .foxe extension, and map_lib's include/map_lib/testing headers).
+# Keep ignore rules here, in one place.
+
+# colcon / ROS build output (sim/, and each exercise workspace)
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Node (the Foxglove extension source)
+node_modules/
+
+# Recorded data: too large for git. Share bags as release assets instead.
+*.db3
+*.mcap
+*.svo
+bags/
+
+# Trained models: too large for git.
+*.pt
+*.onnx
+*.weights
+*.ckpt
+*.h5
+
+# Editor / OS
+.DS_Store
+*.swp

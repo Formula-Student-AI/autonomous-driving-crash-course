@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+    <name>state_lib</name>
+    <version>0.0.0</version>
+    <description>Small utility library for defining states as a vector and matrix.</description>
+    <maintainer email="siliconlad@protonmail.com">Angus Stewart</maintainer>
+    <license>MIT</license>
+
+    <url type="website">http://eufs.co</url>
+    <url type="repository">https://gitlab.com/eufs/simulation_group/state_lib</url>
+    <url type="bugtracker">https://gitlab.com/eufs/simulation_group/state_lib/issues</url>
+
+    <buildtool_depend>ament_cmake</buildtool_depend>
+
+    <depend>eigen</depend>
+
+    <test_depend>eigen</test_depend>
+    <test_depend>ament_cmake_gmock</test_depend>
+    <test_depend>eufs_gmock_matchers</test_depend>
+
+    <export>
+        <build_type>ament_cmake</build_type>
+    </export>
+</package>
