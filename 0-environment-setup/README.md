@@ -24,7 +24,7 @@ The simulator lives in [`sim/`](../sim/) in this repository. It is **eufs_sim2**
 | [Git](https://git-scm.com/downloads) | Gets the code | |
 | [Foxglove](https://foxglove.dev/download) | Visualisation | Desktop app recommended. You may be asked to create a free account. |
 
-**Check Docker:** open a terminal and run `docker run hello-world`. You should see "Hello from Docker!". If not, see [Troubleshooting](#troubleshooting).
+**Check Docker:** Run Docker Desktop, open a terminal (You can use a VSCode terminal or Git Bash on Windows) and run `docker run hello-world`. You should see "Hello from Docker!". If not, see [Troubleshooting](#troubleshooting).
 
 ### Step 1b: Install the Dev Containers extension
 
