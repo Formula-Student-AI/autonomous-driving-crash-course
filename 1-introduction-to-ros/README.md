@@ -178,7 +178,7 @@ ros2 run fsai_intro ex5_nearest_cone
 
 **Check.** The log shows a plausible distance (a few metres) and a colour. Compare it with the 3D view in Foxglove.
 
-**Stretch.** Combine exercises 4 and 5 in one node: slow down when the nearest cone is close. This is the beginning of the planning and control track.
+**Stretch.** Combine exercises 4 and 5 in one node: slow down when the nearest cone is close. This is the beginning of the planning and control.
 
 ## Part 4: The whole system on one page
 
@@ -186,15 +186,14 @@ Everything you have just done sits inside a bigger picture. Here is the full dri
 
 ![Architecture of the driverless system: green sensor blocks (Lidar, Camera, IMU, GPS, wheel odometry) feed yellow perception blocks (Lidar Pipeline, Camera Pipeline, Object Fusion) which output cones; blue localisation and mapping blocks (EKF Localisation, SLAM) output state and a map; red planning and control blocks (Local planning, Global planning, MPC) output controls.](../system-architecture-diagram.png)
 
-Every box is one or more ROS nodes, and every arrow is a topic. That is the whole trick: you already know how to read this diagram, because you spent this module writing the boxes and arrows yourself.
 
 > **Ignore the two Lidar boxes.** Our car uses a **stereo camera** only, so there is no lidar and no lidar pipeline in our stack. The simulator can emulate a lidar, but we have it switched off (`lidar: enabled: false` in `sim/src/eufs_sim2/config/plugin_params.yaml`), which is why you see `/camera/cones` but nothing useful on `/lidar_grid/cones`.
 
-Match it to what you did:
+Matching it to what you did:
 
 | In the diagram | What you saw |
 |---|---|
-| Green **sensors** | `/imu/data`, the wheel speeds, the GPS fix — all published by the simulator. No lidar: we use a stereo camera |
+| Green **sensors** | `/imu/data`, the wheel speeds all published by the simulator. No lidar: we use a stereo camera |
 | Yellow **perception** → cones | The simulator skips this and publishes `/cones` directly, as if the camera pipeline had already run. This is why [2.1 Perception](../2.1-perception/) works on real images instead |
 | Blue **localisation and mapping** | `/odom` is the simulator handing you a perfect answer. On the real car, [2.2 SLAM](../2.2-slam/) has to work it out from noisy cones |
 | Red **planning and control** → controls | Your Exercise 4 node, in miniature: read the state, decide, publish `/cmd`. [2.3](../2.3-planning-and-control/) is this box done properly |
@@ -202,21 +201,4 @@ Match it to what you did:
 Two things worth noticing:
 
 - **The simulator stands in for the left-hand side**, which is why you could drive a car on day one without writing a detector.
-- **Every arrow is a decision someone made** about what message type to use and what the data means. Keeping those arrows consistent across teams is a real job, and a frequent source of bugs.
-
-## What to remember
-
-- **Everything is nodes talking over topics and services.** You can inspect it all live with `ros2 topic`, `ros2 node` and `ros2 service`.
-- **The edit → run → observe loop is the work.** In the track modules the checks get more sophisticated, but the loop is the same.
-- **Our stack is the diagram above:** perception, SLAM, planning and control are nodes that subscribe to the previous stage's topic and publish their own.
-
-## Next
-
-Choose at least two tasters, in any order:
-- [2.1 Perception](../2.1-perception/)
-- [2.2 SLAM](../2.2-slam/)
-- [2.3 Planning & Control](../2.3-planning-and-control/)
-
----
-
-*Maintainer notes:* the exercises have not been run against the simulator yet (only syntax-checked). Open questions: confirm `/cones` positions are relative to the car; confirm the `/go` transition timing; decide whether to add an automated checker per exercise.
+- **Every arrow is a decision someone made** about what message type to use and what the data means. Keeping those arrows consistent across teams is a frequent source of bugs.

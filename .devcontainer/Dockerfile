@@ -50,6 +50,13 @@ RUN if ! getent group "${USER_GID}" >/dev/null; then groupadd --gid ${USER_GID} 
     && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME}
 
+# --- simulator scratch directory --------------------------------------------
+# The simulator reads $EUFS_MASTER at startup and writes its logs and
+# data/current/setup.json beneath it. Maps and robot models come from the
+# installed packages, so this only needs to be a writable directory.
+ENV EUFS_MASTER=/home/${USERNAME}/eufs-master
+RUN mkdir -p "${EUFS_MASTER}" && chown -R ${USER_UID}:${USER_GID} "${EUFS_MASTER}"
+
 # --- shell setup ------------------------------------------------------------
 # Every interactive shell gets ROS and, once it has been built, the simulator.
 # Students still source their own exercise workspace by hand: that is part of

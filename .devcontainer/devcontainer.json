@@ -32,9 +32,6 @@
   // students never have to. Takes a few minutes (it is C++).
   "postCreateCommand": "bash .devcontainer/build-sim.sh",
 
-  // Start the Foxglove bridge in the background every time the container starts.
-  "postStartCommand": "bash -c 'source /opt/ros/humble/setup.bash && nohup ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765 > /tmp/foxglove_bridge.log 2>&1 &'",
-
   "customizations": {
     "vscode": {
       "extensions": [

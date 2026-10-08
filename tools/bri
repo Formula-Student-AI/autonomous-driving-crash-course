@@ -26,7 +26,8 @@ find_workspace() {
         [[ -d "$dir/src" ]] && { echo "$dir"; return 0; }
         dir="$(dirname "$dir")"
     done
-    echo "bri: no workspace found here (looked for a folder containing src/)" >&2
+    echo "bri: no workspace found here (looked for a folder containing src/)." >&2
+    echo "     cd into a workspace first, e.g. sim/ or one of the exercise folders." >&2
     exit 1
 }
 
@@ -36,6 +37,9 @@ bri - shortcuts for this course
 
   bri sim                 Launch the simulator
                           = ros2 launch eufs_sim2 eufs_sim2.launch.py
+
+  bri bridge              Start the Foxglove bridge (lets Foxglove see ROS topics)
+                          = ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765
 
   bri go [mission]        Select a mission and send GO (default: trackdrive)
                           = ros2 service call /set_mission eufs_msgs/srv/SetMission "{mission: N}"
@@ -58,6 +62,10 @@ shift || true
 case "$cmd" in
     sim)
         exec ros2 launch eufs_sim2 eufs_sim2.launch.py "$@"
+        ;;
+
+    bridge)
+        exec ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765 "$@"
         ;;
 
     go)

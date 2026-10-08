@@ -26,8 +26,6 @@ The simulator lives in [`sim/`](../sim/) in this repository. It is **eufs_sim2**
 
 **Check Docker:** open a terminal and run `docker run hello-world`. You should see "Hello from Docker!". If not, see [Troubleshooting](#troubleshooting).
 
-Give Docker enough memory: **Docker Desktop → Settings → Resources**, 8 GB or more if your laptop has it.
-
 ### Step 1b: Install the Dev Containers extension
 
 This is the piece that lets VS Code work *inside* Docker. Nothing after this point works without it, so do not skip it.
@@ -98,7 +96,13 @@ You should see topics including `/cmd`, `/odom`, `/cones`, `/imu/data`, `/tf` an
 
 ## Step 5: See it in Foxglove
 
-The container starts a `foxglove_bridge` on port **8765** automatically, which is how Foxglove reads ROS topics.
+Foxglove cannot read ROS topics directly. The **foxglove_bridge** is a separate ROS node that subscribes to topics and serves them over a WebSocket on port **8765**, and the simulator knows nothing about it. Start it in a second terminal, leaving the simulator running in the first:
+
+```bash
+bri bridge        # = ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765
+```
+
+It prints a line for each topic it advertises. Stop it with Ctrl+C and Foxglove loses the connection while the simulator keeps running.
 
 **1. Connect.** Open Foxglove → **Open connection → Foxglove WebSocket**, enter `ws://localhost:8765` and connect.
 
@@ -187,14 +191,13 @@ It is one short shell script with no hidden behaviour: `bri help` prints the raw
 
 **`docker run hello-world` fails, or Docker will not start.** On Windows, virtualisation must be enabled (a BIOS/UEFI setting) and WSL 2 installed. Docker Desktop reports the specific error; search for it together with "Docker Desktop WSL 2".
 
-**The container build is very slow or runs out of memory.** Raise Docker's memory limit (Settings → Resources) and close other heavy applications. The build compiles C++, so it uses every core you give it.
+**The container build is very slow or runs out of memory.** Raise Docker's memory limit (Docker Desktop → Settings → Resources; 8 GB or more if your laptop has it) and close other heavy applications. The build compiles C++, so it uses every core you give it.
 
 **`package 'eufs_sim2' not found`.** You are probably in a terminal on your host rather than inside the container. Check the bottom-left corner of VS Code says **Dev Container**.
 
 **Foxglove cannot connect to `ws://localhost:8765`.**
 1. Check the PORTS tab in VS Code lists 8765.
-2. Confirm the bridge is running: `ros2 node list` should include `/foxglove_bridge`. Its log is `/tmp/foxglove_bridge.log`.
-3. Start it by hand if needed: `ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765`.
+2. Confirm the bridge is running: `ros2 node list` should include `/foxglove_bridge`. If not, start it with `bri bridge` (see Step 5).
 
 **I see topics but no cones in Foxglove.** Install the extension (Step 5) and reload Foxglove.
 
