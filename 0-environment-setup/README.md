@@ -202,8 +202,3 @@ It is one short shell script with no hidden behaviour: `bri help` prints the raw
 
 **Odd behaviour after several launches (duplicate topics, stale state).** An old simulator process may still be running. Find it with `ros2 node list` and stop it, or rebuild the container from the Command Palette (**Dev Containers: Rebuild Container**).
 
-**Something else.** Ask in the society channel with: your OS, the command you ran, and the full output.
-
-## Next
-
-[1. Introduction to ROS →](../1-introduction-to-ros/)

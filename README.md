@@ -36,11 +36,9 @@ Keep these open in a tab as **references to dip into**, not courses to complete:
 
 | For | Use |
 |---|---|
-| **Python** — most of what you will write here, including every Module 1 exercise | [Automate the Boring Stuff](https://automatetheboringstuff.com/) (free, practical) or the [official Python tutorial](https://docs.python.org/3/tutorial/) |
-| **C++** — the simulator core, and our planning and control code | [learncpp.com](https://www.learncpp.com/) — thorough and free. Chapters 1–8 are plenty to begin with |
-| **The terminal, and git** — you will live in both | [MIT's The Missing Semester](https://missing.csail.mit.edu/), the practical skills no one teaches you |
+| **Python** - most of what you will write here, including every Module 1 exercise | the [official Python tutorial](https://docs.python.org/3/tutorial/) |
+| **C++** - the simulator, plannning control and SLAM | [learncpp.com](https://www.learncpp.com/) — thorough and free. Chapters 1–8 are plenty to begin with |
+| **The terminal, and git** | [MIT's The Missing Semester](https://missing.csail.mit.edu/), the practical skills no one teaches you |
 | **ROS** | [ROS 2 Humble tutorials](https://docs.ros.org/en/humble/Tutorials.html), but start with [Module 1](1-introduction-to-ros/) — it is shorter and uses our car |
 
 **Start with Python.** It is what the exercises use, and you can be useful with it quickly. Pick up C++ later, when you want to work on the simulator or on control.
-
-A good rule when you are stuck: try it, read the error message properly, search that error, then ask us. Getting stuck and unstuck *is* the skill.
