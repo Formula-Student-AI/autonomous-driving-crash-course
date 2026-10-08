@@ -99,8 +99,10 @@ You should see topics including `/cmd`, `/odom`, `/cones`, `/imu/data`, `/tf` an
 Foxglove cannot read ROS topics directly. The **foxglove_bridge** is a separate ROS node that subscribes to topics and serves them over a WebSocket on port **8765**, and the simulator knows nothing about it. Start it in a second terminal, leaving the simulator running in the first:
 
 ```bash
-bri bridge        # = ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765
+ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765
 ```
+
+(`bri bridge` is a shortcut for the same command; see the table below.)
 
 It prints a line for each topic it advertises. Stop it with Ctrl+C and Foxglove loses the connection while the simulator keeps running.
 
@@ -182,6 +184,7 @@ Restarting the simulator and re-sending mission and GO gets tedious fast, so the
 | Shortcut | What it actually runs |
 |---|---|
 | `bri sim` | `ros2 launch eufs_sim2 eufs_sim2.launch.py` |
+| `bri bridge` | `ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765` |
 | `bri go` | `/set_mission` (Trackdrive) followed by `/go` |
 | `bri build` | `colcon build --symlink-install` in the workspace you are in |
 
@@ -197,7 +200,7 @@ It is one short shell script with no hidden behaviour: `bri help` prints the raw
 
 **Foxglove cannot connect to `ws://localhost:8765`.**
 1. Check the PORTS tab in VS Code lists 8765.
-2. Confirm the bridge is running: `ros2 node list` should include `/foxglove_bridge`. If not, start it with `bri bridge` (see Step 5).
+2. Confirm the bridge is running: `ros2 node list` should include `/foxglove_bridge`. If not, start it with `ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765` (or `bri bridge`).
 
 **I see topics but no cones in Foxglove.** Install the extension (Step 5) and reload Foxglove.
 
