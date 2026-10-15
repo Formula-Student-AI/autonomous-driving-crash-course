@@ -4,7 +4,7 @@ A hands-on introduction to the software behind a Formula Student AI car, from th
 
 By the end you will have run our simulator, made a car move with code you wrote, and tried the kind of work each of our software teams does, so you can choose where you want to contribute.
 
-> Modelled on the [EUFS Mobile Robotics Crash Course](https://gitlab.com/eufs/admin/mobile-robotics-crash-course). The simulator is [eufs_sim2](https://gitlab.com/eufs/public/eufs_sim2) from Edinburgh University Formula Student.
+> The simulator is [eufs_sim2](https://gitlab.com/eufs/public/eufs_sim2) from Edinburgh University Formula Student.
 
 ## What an autonomous car does
 
@@ -26,13 +26,13 @@ Read it left to right: **sensors** see the world, **perception** turns raw data 
 | 2.2 | [SLAM](2.2-slam/) | Build a map and locate the car in it |
 | 2.3 | [Planning & Control](2.3-planning-and-control/) | Make the car follow the track |
 
-**How to use it:** do Modules 0 and 1 in order. Then try **at least one** of the 2.x modules in any order. They are tasters; each shows what working in that team is really like, including the boring parts. They do not depend on each other.
+**How to use it:** do Modules 0 and 1 in order. Then try **at least one** of the 2.x modules in any order. They are tasters; each shows what working in that team is really like. They do not depend on each other.
 
 ## If you have not done much programming
 
-You do not need to be a strong programmer to start, and you definitely do not need to finish a course before joining us. **Start Module 0 now and look things up when you get stuck.** Reading about programming is a slow way to learn it; writing code that does something you care about is a fast one.
+You do not need to be a strong programmer to start, and you definitely do not need to finish a course before joining us. **Start Module 0 now and look things up when you get stuck.** Reading about programming is a slow way to learn it. Writing code that does something you can see the results of is far better method for learning.
 
-Keep these open in a tab as **references to dip into**, not courses to complete:
+Naturally I would recommend using LLMs to find specific information you need however if you want more rigorous and traditional means of information:
 
 | For | Use |
 |---|---|
@@ -41,4 +41,3 @@ Keep these open in a tab as **references to dip into**, not courses to complete:
 | **The terminal, and git** | [MIT's The Missing Semester](https://missing.csail.mit.edu/), the practical skills no one teaches you |
 | **ROS** | [ROS 2 Humble tutorials](https://docs.ros.org/en/humble/Tutorials.html), but start with [Module 1](1-introduction-to-ros/) — it is shorter and uses our car |
 
-**Start with Python.** It is what the exercises use, and you can be useful with it quickly. Pick up C++ later, when you want to work on the simulator or on control.

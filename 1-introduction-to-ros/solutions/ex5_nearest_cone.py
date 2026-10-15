@@ -21,7 +21,7 @@ def most_likely_colour(cone):
 class NearestCone(Node):
     def __init__(self):
         super().__init__('nearest_cone')
-        self.create_subscription(ConeWithColorProbabilityArray, '/cones', self.on_cones, 10)
+        self.create_subscription(ConeWithColorProbabilityArray, '/cones/lenient', self.on_cones, 10)
 
     def on_cones(self, msg: ConeWithColorProbabilityArray):
         if not msg.cones:

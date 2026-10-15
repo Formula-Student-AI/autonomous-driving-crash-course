@@ -1,6 +1,6 @@
 """Exercise 5: see what the car sees.
 
-Subscribe to /cones (eufs_msgs/msg/ConeWithColorProbabilityArray) and log the
+Subscribe to /cones/lenient (eufs_msgs/msg/ConeWithColorProbabilityArray) and log the
 nearest cone: how far away it is, and what colour it most likely is.
 """
 import math
@@ -26,7 +26,7 @@ def most_likely_colour(cone):
 class NearestCone(Node):
     def __init__(self):
         super().__init__('nearest_cone')
-        # TODO 2: subscribe to '/cones' with type ConeWithColorProbabilityArray,
+        # TODO 2: subscribe to '/cones/lenient' with type ConeWithColorProbabilityArray,
         #         calling self.on_cones, queue size 10.
 
     def on_cones(self, msg: ConeWithColorProbabilityArray):
