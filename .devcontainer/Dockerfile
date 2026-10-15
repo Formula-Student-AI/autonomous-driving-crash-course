@@ -4,9 +4,10 @@
 # visualise with Foxglove, so rviz/Qt tooling is not needed) and installs every
 # system dependency the simulator declares.
 #
-# The simulator itself is NOT built here. It is built once into sim/install when
-# the container is first created (see devcontainer.json's postCreateCommand), so
-# there is only ever one copy of the source: the one in this repository.
+# The simulator itself is NOT built here. The user builds it from sim/ with colcon
+# (Module 0, Step 4), so there is only ever one copy of the source: the one in
+# this repository, and building it is something they learn to do rather than
+# something that happens invisibly.
 
 FROM ros:humble
 

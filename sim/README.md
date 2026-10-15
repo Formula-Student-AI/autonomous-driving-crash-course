@@ -29,7 +29,17 @@ This is a ROS 2 workspace: the packages are in `src/`, and `build/`, `install/` 
 
 ## How it is built
 
-The dev container image ([`.devcontainer/Dockerfile`](../.devcontainer/Dockerfile)) installs these packages' system dependencies with `rosdep`. The simulator itself is compiled **once, when the container is created**, by [`.devcontainer/build-sim.sh`](../.devcontainer/build-sim.sh), which runs `colcon build` here. The result lands in `sim/install`, and every shell in the container sources it automatically.
+The dev container image ([`.devcontainer/Dockerfile`](../.devcontainer/Dockerfile)) installs these packages' system dependencies with `rosdep`, but it does **not** compile the simulator.
+
+You build it yourself, once, from this folder:
+
+```bash
+cd sim
+colcon build --symlink-install
+source install/setup.bash
+```
+
+That is [Step 4 of Module 0](../0-environment-setup/README.md#step-4-build-the-simulator). The result lands in `sim/install`, and from then on every *new* shell in the container sources it automatically (the image appends a guarded `source` line to `/etc/bash.bashrc`).
 
 So there is only one copy of the source: this one. Editing it and rebuilding works the way it does in any ROS workspace.
 

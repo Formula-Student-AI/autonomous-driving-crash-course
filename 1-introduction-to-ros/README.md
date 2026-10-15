@@ -39,7 +39,7 @@ This loop is the whole job of an autonomous car: read sensors, decide, command, 
 
 ## Part 2: Look inside the running system 
 
-Start the simulator ([Module 0, Step 4](../0-environment-setup/README.md#step-4-launch-the-simulator)) and use a second terminal. In each of these, **predict** what you will see before you run it.
+Start the simulator ([Module 0, Step 5](../0-environment-setup/README.md#step-5-launch-the-simulator)) and use a second terminal. In each of these, **predict** what you will see before you run it.
 
 ```bash
 ros2 node list                    # which programs are running?
@@ -66,7 +66,7 @@ You will write five small nodes. The skeletons are in [`exercises/src/fsai_intro
 
 ### Set up the workspace (once)
 
-A *workspace* is a folder of ROS packages you build together. You already have one: `sim/`, which the container built for you. This second one is for **your** code: `1-introduction-to-ros/exercises`. Keeping them separate means you never wait for the simulator's C++ to recompile when you change a line of your own Python.
+A *workspace* is a folder of ROS packages you build together. You already built one in [Module 0](../0-environment-setup/README.md#step-4-build-the-simulator): `sim/`. This second one is for **your** code: `1-introduction-to-ros/exercises`. Keeping them separate means you never wait for the simulator's C++ to recompile when you change a line of your own Python.
 
 In a terminal **inside the dev container**:
 
@@ -85,7 +85,7 @@ That last line is what makes `ros2 run fsai_intro ...` work, and you need it in 
 
 Environment variables are per-shell, which is why a new terminal starts out knowing nothing again.
 
-The simulator is exempt only because the container does it for you automatically. When this image was built, two lines were appended to `/etc/bash.bashrc`, the file bash runs for every interactive shell:
+The simulator is exempt only because the container does it for you, once you have built it. When this image was built, two lines were appended to `/etc/bash.bashrc`, the file bash runs for every interactive shell:
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -96,8 +96,8 @@ So every terminal you open sources ROS, and then the simulator if it has been bu
 
 Two consequences worth knowing:
 
-- A terminal you opened **before** the simulator finished building will not have it. Open a new one.
-- `/etc/bash.bashrc` only runs for *interactive* shells. A script you run with `bash myscript.sh` does not get it, so scripts have to source what they need themselves — which is exactly what [`.devcontainer/build-sim.sh`](../.devcontainer/build-sim.sh) does on its first line.
+- The terminal you built the simulator in was open **before** `sim/install` existed, which is why you had to `source` by hand there. Any terminal you open afterwards gets it for free.
+- `/etc/bash.bashrc` only runs for *interactive* shells. A script you run with `bash myscript.sh` does not get it, so scripts have to source ROS themselves on their first line.
 
 You could add your exercise workspace to `bashrc` too. We deliberately do not: typing it is how you learn what it does, and in the 2.x modules you will switch between workspaces.
 </details>
@@ -128,7 +128,7 @@ ros2 run fsai_intro ex1_listener
 
 **Task.** In `ex2_driver.py`, publish an `AckermannDriveStamped` on `/cmd` at 10 Hz with acceleration `2.0` and steering angle `0.2`.
 
-The car must be told which event to run before it will move. For now do that from the command line (the two `ros2 service call` commands from [Module 0, Step 6](../0-environment-setup/README.md#step-6-drive-the-car-with-commands), or just `bri go`), then:
+The car must be told which event to run before it will move. For now do that from the command line (the two `ros2 service call` commands from [Module 0, Step 7](../0-environment-setup/README.md#step-7-drive-the-car-with-commands), or just `bri go`), then:
 
 ```bash
 ros2 run fsai_intro ex2_driver
