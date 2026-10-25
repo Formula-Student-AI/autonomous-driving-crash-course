@@ -1,0 +1,12 @@
+# ROS 2 build artefacts
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# test artefacts
+out/
+__pycache__/
+*.pyc
+
+# flyscreen installer backups (live in the flyscreen checkout, not here)
+.flyscreen_live_backup/

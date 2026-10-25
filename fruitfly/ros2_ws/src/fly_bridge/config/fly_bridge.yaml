@@ -1,0 +1,50 @@
+fly_bridge:
+  ros__parameters:
+    # Where the WSL relay forwards to the Windows flyscreen live server.
+    # 172.17.0.1 is the WSL VM as seen from the dev container; see
+    # fruitfly/tools/start_relay.ps1.
+    fly_url: "http://172.17.0.1:8780"
+
+    # assist = fly biases the pure-pursuit driver (recommended)
+    # fly    = fly motor signal is the steering command (chaotic)
+    # pursuit= ignore the fly, just drive the centreline
+    mode: "assist"
+
+    # Empty = use the package's own copies of the FSUK 2023 track.
+    track_file: ""
+    centerline_file: ""
+
+    # What the fly sees: ordered blue/yellow walls projected into a pinhole view.
+    vision_rate: 15.0
+    vision_w: 160
+    vision_h: 120
+    vision_hfov: 1.91889
+    vision_range: 30.0
+    vision_near: 0.6
+    camera_height: 0.55
+    vision_thickness: 1
+
+    # Controller
+    control_rate: 20.0
+    lookahead: 4.0
+    wheelbase: 1.58
+    target_speed: 3.0
+    max_steer: 0.5
+    max_accel: 3.0
+    max_brake: 5.0
+
+    # Fly authority
+    fly_steer_gain: 0.18
+    fly_speed_gain: 2.0
+    fly_require_fresh_s: 2.0
+
+    # Virtual walls (blue = left, yellow = right)
+    wall_guard: true
+    wall_margin: 0.35
+    wall_steer: 0.45
+    wall_brake: 5.0
+    reset_on_wall: false
+
+    # Brain/body images for Foxglove
+    publish_images: true
+    image_rate: 10.0
