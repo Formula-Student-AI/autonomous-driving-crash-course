@@ -48,6 +48,18 @@ def yaw_from_quat(q) -> float:
     return math.atan2(siny, cosy)
 
 
+# Six cameras, 60 deg apart, 60 deg horizontal FOV each (360 deg total).
+# Positive offset = left of the car; names follow the car's perspective.
+PERCEPTION_CAMERAS = [
+    ("front", 0.0),
+    ("front_left", 60.0),
+    ("rear_left", 120.0),
+    ("rear", 180.0),
+    ("rear_right", 240.0),
+    ("front_right", 300.0),
+]
+
+
 class TrackCamera(Node):
     def __init__(self) -> None:
         super().__init__("track_camera")
@@ -66,6 +78,16 @@ class TrackCamera(Node):
         self.max_range = float(self.declare_parameter(
             "max_range", 45.0).value)
         self.show = bool(self.declare_parameter("show", False).value)
+        self.num_cameras = int(self.declare_parameter("num_cameras", 6).value)
+        self.pw = int(self.declare_parameter("perception_width", 320).value)
+        self.ph = int(self.declare_parameter("perception_height", 180).value)
+        self.perception_fov = float(self.declare_parameter(
+            "perception_fov", math.pi / 3.0).value)
+        self.render_front = bool(self.declare_parameter(
+            "render_front", True).value)
+        self.perception = PERCEPTION_CAMERAS[:max(0, min(6, self.num_cameras))]
+        self.perception_f = (self.pw / 2.0) / math.tan(
+            max(1e-3, self.perception_fov) / 2.0)
 
         self.track = Track(self.track_file, self.centerline_file)
         self.x = self.y = self.yaw = self.v = 0.0
@@ -89,27 +111,46 @@ class TrackCamera(Node):
         self.pub = self.create_publisher(Image, "/race/camera", 1)
         self.info_pub = self.create_publisher(
             CameraInfo, "/race/camera_info", 1)
-        self.info = CameraInfo()
-        self.info.header.frame_id = "base_footprint"
-        self.info.width = self.W
-        self.info.height = self.H
-        self.info.distortion_model = "plumb_bob"
-        self.info.d = [0.0, 0.0, 0.0, 0.0, 0.0]
-        self.info.k = [self.f, 0.0, self.W / 2.0,
-                       0.0, self.f, self.H / 2.0,
-                       0.0, 0.0, 1.0]
-        self.info.r = [1.0, 0.0, 0.0,
-                       0.0, 1.0, 0.0,
-                       0.0, 0.0, 1.0]
-        self.info.p = [self.f, 0.0, self.W / 2.0, 0.0,
-                       0.0, self.f, self.H / 2.0, 0.0,
-                       0.0, 0.0, 1.0, 0.0]
+        self.info = self._make_info(self.W, self.H, self.f)
+
+        self.perception_pubs = {}
+        self.perception_info_pubs = {}
+        self.perception_infos = {}
+        for name, _deg in self.perception:
+            self.perception_pubs[name] = self.create_publisher(
+                Image, f"/perception/camera/{name}/image", 1)
+            self.perception_info_pubs[name] = self.create_publisher(
+                CameraInfo, f"/perception/camera/{name}/camera_info", 1)
+            self.perception_infos[name] = self._make_info(
+                self.pw, self.ph, self.perception_f)
+
         self.create_timer(1.0, self.publish_info)
         self.publish_info()
         self.create_timer(1.0 / max(1.0, self.fps), self.render)
         self.get_logger().info(
-            f"camera {self.W}x{self.H}@{self.fps:g}Hz -> /race/camera  "
+            f"front {self.W}x{self.H}@{self.fps:g}Hz -> /race/camera; "
+            f"{len(self.perception)} perception cameras "
+            f"{self.pw}x{self.ph} at {math.degrees(self.perception_fov):.0f} deg "
+            f"FOV -> /perception/camera/<name>/image  "
             f"(h={self.camera_height:.2f} pitch={self.pitch:.2f})")
+
+    def _make_info(self, width: int, height: int, focal: float) -> CameraInfo:
+        info = CameraInfo()
+        info.header.frame_id = "base_footprint"
+        info.width = width
+        info.height = height
+        info.distortion_model = "plumb_bob"
+        info.d = [0.0, 0.0, 0.0, 0.0, 0.0]
+        info.k = [focal, 0.0, width / 2.0,
+                  0.0, focal, height / 2.0,
+                  0.0, 0.0, 1.0]
+        info.r = [1.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0,
+                  0.0, 0.0, 1.0]
+        info.p = [focal, 0.0, width / 2.0, 0.0,
+                  0.0, focal, height / 2.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0]
+        return info
 
     # ------------------------------------------------------------ setup
     def _center_samples(self):
