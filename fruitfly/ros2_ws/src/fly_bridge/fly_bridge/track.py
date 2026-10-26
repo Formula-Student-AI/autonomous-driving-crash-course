@@ -67,6 +67,37 @@ def _read_cones(path: str) -> list[tuple[str, float, float]]:
     return out
 
 
+def _read_car_start(path: str) -> tuple[float, float, float]:
+    """Read the optional car_start row: x, y, rotation (radians).
+
+    The simulator transforms the track into the car's start frame:
+        p_map = R(-yaw) * (p_csv - start_xy)
+    We apply the same transform so the fly bridge agrees with /map.
+    """
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if (row.get("tag") or "").strip().lower() != "car_start":
+                continue
+            try:
+                x = float(row["x"])
+                y = float(row["y"])
+                yaw = float(row.get("direction") or 0.0)
+            except (KeyError, TypeError, ValueError):
+                continue
+            return x, y, yaw
+    return 0.0, 0.0, 0.0
+
+
+def _transform_points(points, sx: float, sy: float, yaw: float):
+    """p_map = R(-yaw) * (p_csv - start_xy), matching eufs_sim2."""
+    c, s = math.cos(-yaw), math.sin(-yaw)
+    out = []
+    for x, y in points:
+        dx, dy = x - sx, y - sy
+        out.append((c * dx - s * dy, s * dx + c * dy))
+    return out
+
+
 class Track:
     """Centreline + cone walls + geometric queries."""
 
@@ -82,9 +113,19 @@ class Track:
         self.max_link = float(max_link)
         self.pair_window = float(pair_window)
 
-        self.cones = _read_cones(cones_csv)
+        # eufs_sim2 applies the car_start pose to the track. /map is in that
+        # car-start frame, so apply the same transform here.
+        self.start_pose = _read_car_start(cones_csv)
+        sx, sy, syaw = self.start_pose
+        raw_cones = _read_cones(cones_csv)
+        self.cones = [
+            (tag, tx, ty)
+            for tag, x, y in raw_cones
+            for tx, ty in _transform_points([(x, y)], sx, sy, syaw)
+        ]
         if centerline_csv:
-            self.center = _read_xy(centerline_csv)
+            self.center = _transform_points(
+                _read_xy(centerline_csv), sx, sy, syaw)
         else:
             self.center = self._center_from_cones()
 

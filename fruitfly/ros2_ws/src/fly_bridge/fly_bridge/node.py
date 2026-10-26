@@ -24,13 +24,14 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import CompressedImage, Image
-from std_msgs.msg import Bool, Float32MultiArray, String
+from std_msgs.msg import Bool, Float32, Float32MultiArray, Int32, String
 from visualization_msgs.msg import Marker, MarkerArray
 
 from ament_index_python.packages import get_package_share_directory
 
 from .control import Command, ControlConfig, PurePursuit
 from .http_client import FlyClient
+from .scenery import build_scenery
 from .track import Track
 from .vision import render_view
 
@@ -68,6 +69,7 @@ class BridgeWorker(threading.Thread):
                     hfov=node.vision_hfov, max_range=node.vision_range,
                     near=node.vision_near, camera_height=node.camera_height,
                     thickness=node.vision_thickness,
+                    cones=node.track.cones,
                 )
                 resp = node.fly.post_frame(retina, node.vision_w, node.vision_h)
                 with node.lock:
@@ -113,6 +115,9 @@ class FlyBridge(Node):
         # ---------------------------------------------------------- params
         self.fly_url = self._p("fly_url", "http://172.17.0.1:8780")
         self.mode = str(self._p("mode", "assist")).lower()
+        # IMPORTANT: in the course workflow the fly must not write /cmd.
+        # It writes /fly/cmd; fake run/cmd_mux.py forwards the selected mode.
+        self.cmd_topic = str(self._p("cmd_topic", "/fly/cmd"))
         self.track_file = str(self._p("track_file", ""))
         self.centerline_file = str(self._p("centerline_file", ""))
 
@@ -131,21 +136,39 @@ class FlyBridge(Node):
         self.reset_on_wall = bool(self._p("reset_on_wall", False))
 
         self.lookahead = float(self._p("lookahead", 4.0))
+        self.lookahead_min = float(self._p("lookahead_min", 2.5))
+        self.lookahead_gain = float(self._p("lookahead_gain", 0.35))
         self.wheelbase = float(self._p("wheelbase", 1.58))
         self.target_speed = float(self._p("target_speed", 3.0))
         self.max_steer = float(self._p("max_steer", 0.5))
         self.max_accel = float(self._p("max_accel", 3.0))
         self.max_brake = float(self._p("max_brake", 5.0))
+        self.k_lat = float(self._p("k_lat", 0.6))
         self.fly_steer_gain = float(self._p("fly_steer_gain", 0.18))
         self.fly_speed_gain = float(self._p("fly_speed_gain", 2.0))
         # The flyscreen render loop is slow (~1-3 fps on a laptop). The fly's
         # own motor timestamp is the honest freshness signal; allow a couple of
         # seconds before dropping its bias.
         self.fly_require_fresh_s = float(self._p("fly_require_fresh_s", 2.0))
+        self.car_half_width = float(self._p("car_half_width", 0.75))
         self.wall_guard = bool(self._p("wall_guard", True))
         self.wall_margin = float(self._p("wall_margin", 0.35))
         self.wall_steer = float(self._p("wall_steer", 0.45))
         self.wall_brake = float(self._p("wall_brake", 5.0))
+        self.predict_horizon = float(self._p("predict_horizon", 0.4))
+        self.predict_margin = float(self._p("predict_margin", 0.10))
+        self.lat_slowdown = float(self._p("lat_slowdown", 0.5))
+
+        # cone-hit penalty (a proxy for the competition time penalty)
+        self.cone_hit_radius = float(self._p("cone_hit_radius", 0.95))
+        self.cone_penalty_s = float(self._p("cone_penalty_s", 5.0))
+        self.lap_min_s = float(self._p("lap_min_s", 10.0))
+
+        # Foxglove scenery
+        self.publish_scenery = bool(self._p("publish_scenery", True))
+        self.scenery_trees = bool(self._p("scenery_trees", True))
+        self.publish_sky = bool(self._p("publish_sky", False))
+        self.scenery_rate = float(self._p("scenery_rate", 10.0))
 
         # ---------------------------------------------------------- track
         share = get_package_share_directory("fly_bridge")
@@ -156,17 +179,24 @@ class FlyBridge(Node):
 
         cfg = ControlConfig(
             lookahead=self.lookahead,
+            lookahead_min=self.lookahead_min,
+            lookahead_gain=self.lookahead_gain,
             wheelbase=self.wheelbase,
             target_speed=self.target_speed,
             max_steer=self.max_steer,
             max_accel=self.max_accel,
             max_brake=self.max_brake,
+            k_lat=self.k_lat,
             fly_steer_gain=self.fly_steer_gain,
             fly_speed_gain=self.fly_speed_gain,
             fly_require_fresh_s=self.fly_require_fresh_s,
+            car_half_width=self.car_half_width,
             wall_margin=self.wall_margin,
             wall_steer=self.wall_steer,
             wall_brake=self.wall_brake,
+            predict_horizon=self.predict_horizon,
+            predict_margin=self.predict_margin,
+            lat_slowdown=self.lat_slowdown,
         )
         self.pursuit = PurePursuit(self.track, cfg)
         self.fly = FlyClient(self.fly_url)
@@ -191,12 +221,31 @@ class FlyBridge(Node):
         self._last_walls = 0.0
         self._last_log = 0.0
 
+        # race / penalty bookkeeping
+        self.cone_hits = 0
+        self.penalty_s = 0.0
+        self._hit_cones: set[int] = set()
+        self._last_s: float | None = None
+        self.laps = 0
+        self._lap_t0 = time.time()
+        self._last_lap_time: float | None = None
+
+        # static Foxglove scenery (built once, republished periodically)
+        self.scenery = (build_scenery(self.track, include_trees=self.scenery_trees,
+                                      include_sky=self.publish_sky)
+                        if self.publish_scenery else None)
+        self._last_scenery = 0.0
+
         # ---------------------------------------------------------- ROS
         self.create_subscription(Odometry, "/odom", self._on_odom, 10)
-        self.cmd_pub = self.create_publisher(AckermannDriveStamped, "/cmd", 10)
+        self.cmd_pub = self.create_publisher(
+            AckermannDriveStamped, self.cmd_topic, 10)
         self.motor_pub = self.create_publisher(Float32MultiArray, "/fly/motor", 10)
         self.contact_pub = self.create_publisher(Bool, "/fly/wall_contact", 10)
         self.status_pub = self.create_publisher(String, "/fly/status", 10)
+        self.cone_hits_pub = self.create_publisher(Int32, "/fly/cone_hits", 10)
+        self.penalty_pub = self.create_publisher(Float32, "/fly/penalty_s", 10)
+        self.lap_pub = self.create_publisher(Int32, "/fly/lap", 10)
         self.brain_pub = self.create_publisher(
             CompressedImage, "/fly/brain/compressed", 1)
         self.body_pub = self.create_publisher(
@@ -204,6 +253,8 @@ class FlyBridge(Node):
         self.retina_pub = self.create_publisher(Image, "/fly/retina", 1)
         latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.walls_pub = self.create_publisher(MarkerArray, "/fly/walls", latched)
+        self.scenery_pub = self.create_publisher(
+            MarkerArray, "/fly/scenery", latched)
 
         self.create_timer(1.0 / max(1.0, self.control_rate), self._on_control)
         self.create_timer(1.0 / max(1.0, self.image_rate), self._on_viz)
@@ -212,8 +263,10 @@ class FlyBridge(Node):
         self.worker = BridgeWorker(self)
         self.worker.start()
         self._publish_walls()
+        self._publish_scenery()
         self.get_logger().info(
             f"fly bridge up: mode={self.mode} fly={self.fly_url} "
+            f"cmd={self.cmd_topic} "
             f"vision={self.vision_w}x{self.vision_h}@{self.vision_rate:g}Hz "
             f"control={self.control_rate:g}Hz")
 
@@ -294,6 +347,51 @@ class FlyBridge(Node):
         self._was_contact = cmd.wall_contact
         self.contact_pub.publish(Bool(data=bool(cmd.wall_contact)))
 
+        self._update_penalty(x, y, cmd.s)
+
+    def _update_penalty(self, x: float, y: float, s: float) -> None:
+        """Lap bookkeeping + a conservative cone-hit time penalty.
+
+        The simulator's own collision tracker only publishes proximity, not a
+        race penalty. This uses the real cone positions and a radius that
+        covers the car's half-width plus a cone, so it matches what a judge
+        would call a hit.
+        """
+        if self._last_s is not None and s < self._last_s - self.track.length * 0.5:
+            now = time.time()
+            lap_time = now - self._lap_t0
+            # The car spawns just before the start line and crosses it almost
+            # immediately; that is not a lap.
+            if lap_time >= self.lap_min_s:
+                self.laps += 1
+                self._last_lap_time = lap_time
+                self.get_logger().info(
+                    f"lap {self.laps} complete: {lap_time:.1f}s, "
+                    f"{self.cone_hits} cone hits, {self.penalty_s:.1f}s penalty")
+            # Either a real lap or the initial start-line crossing: start a
+            # fresh per-lap penalty tally.
+            self.cone_hits = 0
+            self.penalty_s = 0.0
+            self._lap_t0 = now
+            self._hit_cones.clear()
+        self._last_s = s
+
+        r2 = self.cone_hit_radius * self.cone_hit_radius
+        for i, (tag, cx, cy) in enumerate(self.track.cones):
+            if i in self._hit_cones:
+                continue
+            if (cx - x) * (cx - x) + (cy - y) * (cy - y) <= r2:
+                self._hit_cones.add(i)
+                self.cone_hits += 1
+                self.penalty_s += self.cone_penalty_s
+                self.get_logger().warn(
+                    f"cone hit #{self.cone_hits} ({tag}) at "
+                    f"({x:.1f},{y:.1f}); penalty {self.penalty_s:.1f}s")
+
+        self.cone_hits_pub.publish(Int32(data=int(self.cone_hits)))
+        self.penalty_pub.publish(Float32(data=float(self.penalty_s)))
+        self.lap_pub.publish(Int32(data=int(self.laps)))
+
     def _fly_direct(self, x, y, yaw, v, fly_ok, fly_steer, fly_throttle) -> Command:
         """No pure-pursuit: the fly's motor signal is the steering command."""
         s, lat, dist = self.track.project(x, y)
@@ -306,7 +404,7 @@ class FlyBridge(Node):
             target = 0.8 + 4.0 * fly_throttle
         accel = 2.0 * (target - v)
         if self.wall_guard:
-            limit = max(0.45, half - self.wall_margin)
+            limit = max(0.35, half - self.car_half_width - self.wall_margin)
             if abs(lat) > limit:
                 contact = True
                 steer = -math.copysign(self.wall_steer, lat)
@@ -329,7 +427,7 @@ class FlyBridge(Node):
             self._seen["brain"] = brain_serial
             m = CompressedImage()
             m.header.stamp = now
-            m.header.frame_id = "fly_brain"
+            m.header.frame_id = "map"
             m.format = "jpeg"
             m.data = brain
             self.brain_pub.publish(m)
@@ -337,7 +435,7 @@ class FlyBridge(Node):
             self._seen["body"] = body_serial
             m = CompressedImage()
             m.header.stamp = now
-            m.header.frame_id = "fly_body"
+            m.header.frame_id = "map"
             m.format = "jpeg"
             m.data = body
             self.body_pub.publish(m)
@@ -345,7 +443,7 @@ class FlyBridge(Node):
             self._seen["retina"] = retina_serial
             m = Image()
             m.header.stamp = now
-            m.header.frame_id = "fly_retina"
+            m.header.frame_id = "base_footprint"
             m.height = self.vision_h
             m.width = self.vision_w
             m.encoding = "mono8"
@@ -356,6 +454,19 @@ class FlyBridge(Node):
 
         if time.time() - self._last_walls > 5.0:
             self._publish_walls()
+        if (self.scenery is not None
+                and time.time() - self._last_scenery > self.scenery_rate):
+            self._publish_scenery()
+
+    def _publish_scenery(self) -> None:
+        """Republish the static road/barrier/cone/tree markers (latched)."""
+        if self.scenery is None:
+            return
+        self._last_scenery = time.time()
+        stamp = self.get_clock().now().to_msg()
+        for m in self.scenery.markers:
+            m.header.stamp = stamp
+        self.scenery_pub.publish(self.scenery)
 
     def _publish_walls(self) -> None:
         self._last_walls = time.time()
@@ -418,6 +529,11 @@ class FlyBridge(Node):
             "motor": motor,
             "speed": round(odom[3], 2) if odom else None,
             "contact_count": self.contact_count,
+            "cone_hits": self.cone_hits,
+            "penalty_s": round(self.penalty_s, 1),
+            "laps": self.laps,
+            "last_lap_s": (round(self._last_lap_time, 1)
+                           if self._last_lap_time is not None else None),
         }
         self.status_pub.publish(String(data=json.dumps(payload)))
 
@@ -427,7 +543,9 @@ class FlyBridge(Node):
                 f"mode={self.mode} fly={'on' if fly_connected else 'off'} "
                 f"steer={motor.get('steer', 0):+.2f} "
                 f"thr={motor.get('throttle', 0):.2f} "
-                f"speed={payload['speed']} contacts={self.contact_count}")
+                f"speed={payload['speed']} contacts={self.contact_count} "
+                f"hits={self.cone_hits} penalty={self.penalty_s:.0f}s "
+                f"laps={self.laps}")
 
     def shutdown(self) -> None:
         self.worker.stop()

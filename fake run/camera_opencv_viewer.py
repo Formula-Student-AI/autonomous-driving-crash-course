@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """OpenCV viewer for the EUFS emulated camera.
 
 IMPORTANT: eufs_sim2 has NO sensor_msgs/Image camera topic. The ZED in
@@ -7,8 +8,13 @@ max range 20 m) publishes detections on /camera/cones
 (eufs_msgs/ConeWithColorProbabilityArray, car frame, +x forward).
 
 This node renders those detections as a synthetic forward camera view
-with OpenCV (pinhole projection) + a bird-eye strip, via cv2.imshow.
-If $DISPLAY is unset (headless), frames are written to /tmp/cam_view.png.
+with OpenCV (pinhole projection) + a bird-eye strip. It publishes the frame
+as sensor_msgs/Image on /camera/synthetic (frame base_footprint) so it can be
+shown in a Foxglove Image panel. If $DISPLAY is set it also opens cv2.imshow;
+otherwise frames are written to /tmp/cam_view.png.
+
+Run it with `python3 "fake run/camera_opencv_viewer.py"`. The richer
+first-person view is track_camera.py -> /race/camera, started by start_race.sh.
 
 Also included: ImageViewer class (commented main) for a REAL image topic
 via cv_bridge, if you later add a Gazebo/Isaac rendered camera.
@@ -19,8 +25,10 @@ import os
 import cv2
 import numpy as np
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from eufs_msgs.msg import ConeWithColorProbabilityArray
+from sensor_msgs.msg import Image
 
 # Horizontal FOV of emulated camera (must match plugin_params.yaml)
 FOV_RAD = 1.91889
@@ -40,8 +48,11 @@ class SyntheticCameraViewer(Node):
         super().__init__('camera_opencv_viewer')
         self.sub = self.create_subscription(
             ConeWithColorProbabilityArray, '/camera/cones', self.cb, 10)
+        self.img_pub = self.create_publisher(Image, '/camera/synthetic', 1)
         self.fx = (W / 2.0) / math.tan(FOV_RAD / 2.0)
-        self.get_logger().info('Subscribed to /camera/cones. Press q in window to quit.')
+        self.get_logger().info(
+            'Subscribed to /camera/cones; publishing /camera/synthetic. '
+            'Press q in window to quit.')
         self.headless = not os.environ.get('DISPLAY')
         if self.headless:
             self.get_logger().warn('No $DISPLAY; writing frames to /tmp/cam_view.png')
@@ -67,6 +78,18 @@ class SyntheticCameraViewer(Node):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
         cv2.putText(img, f'/camera/cones n={len(msg.cones)}', (10, 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        out = Image()
+        out.header.stamp = self.get_clock().now().to_msg()
+        out.header.frame_id = 'base_footprint'
+        out.height, out.width = H, W
+        out.encoding = 'bgr8'
+        out.is_bigendian = 0
+        out.step = W * 3
+        out.data = img.tobytes()
+        try:
+            self.img_pub.publish(out)
+        except Exception:  # noqa: BLE001 - context shutting down
+            return
         if self.headless:
             cv2.imwrite('/tmp/cam_view.png', img)
         else:
@@ -93,11 +116,16 @@ def main(args=None):
     node = SyntheticCameraViewer()
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
         pass
-    node.destroy_node()
-    cv2.destroyAllWindows()
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        try:
+            cv2.destroyAllWindows()
+        except cv2.error:
+            pass
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

@@ -1,0 +1,42 @@
+{
+  "configById": {
+    "3D!race_track": {
+      "cameraState": {
+        "distance": 40,
+        "perspective": true,
+        "phi": 60,
+        "theta": 45,
+        "targetOffset": [0, 0, 0]
+      },
+      "followMode": "follow-pose",
+      "followTf": "base_footprint",
+      "topics": {
+        "/track/scenery": { "visible": true },
+        "/race/trail": { "visible": true },
+        "/centerline_markers": { "visible": true },
+        "/robot_description": { "visible": true },
+        "/map": { "visible": true },
+        "/cones": { "visible": true }
+      }
+    },
+    "Image!race_camera": {
+      "imageTopic": "/race/camera",
+      "cameraInfoTopic": "/race/camera_info",
+      "imageMode": "image",
+      "rotation": 0,
+      "flipHorizontal": false,
+      "flipVertical": false
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": "Image!race_camera",
+    "second": "3D!race_track",
+    "direction": "column",
+    "splitPercentage": 55
+  }
+}

@@ -21,7 +21,7 @@ def main() -> int:
     rclpy.init()
     node = rclpy.create_node("fly_probe")
     counts = {"odom": 0, "clock": 0, "cmd": 0, "status": 0,
-              "brain": 0, "body": 0, "retina": 0}
+              "brain": 0, "body": 0, "retina": 0, "scenery": 0}
     last = {}
     samples = []
     track = None
@@ -86,6 +86,17 @@ def main() -> int:
     node.create_subscription(CompressedImage, "/fly/brain/compressed", on_brain, 1)
     node.create_subscription(CompressedImage, "/fly/body/compressed", on_body, 1)
     node.create_subscription(Image, "/fly/retina", on_retina, 1)
+
+    from rclpy.qos import DurabilityPolicy, QoSProfile
+    from visualization_msgs.msg import MarkerArray
+
+    def on_scenery(msg):
+        counts["scenery"] += 1
+        last["scenery"] = (len(msg.markers),
+                           sum(len(m.points) for m in msg.markers))
+
+    latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+    node.create_subscription(MarkerArray, "/fly/scenery", on_scenery, latched)
     print("publishers /odom:", node.count_publishers("/odom"),
           " /cmd:", node.count_publishers("/cmd"),
           " /fly/status:", node.count_publishers("/fly/status"), flush=True)

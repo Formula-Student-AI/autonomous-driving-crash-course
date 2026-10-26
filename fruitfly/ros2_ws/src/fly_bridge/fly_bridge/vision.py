@@ -74,6 +74,35 @@ def _clip_near_far(p0, p1, near: float, far: float):
     return (ax, ay), (bx, by)
 
 
+def _triangle(buf: bytearray, w: int, h: int,
+              p0: tuple[int, int], p1: tuple[int, int], p2: tuple[int, int],
+              value: int) -> None:
+    """Fill a small triangle (max-composited)."""
+    xs = (p0[0], p1[0], p2[0])
+    ys = (p0[1], p1[1], p2[1])
+    minx = max(0, min(xs))
+    maxx = min(w - 1, max(xs))
+    miny = max(0, min(ys))
+    maxy = min(h - 1, max(ys))
+    if maxx < minx or maxy < miny:
+        return
+    x0, y0 = p0
+    x1, y1 = p1
+    x2, y2 = p2
+    d = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2)
+    if abs(d) < 1e-9:
+        return
+    for y in range(miny, maxy + 1):
+        for x in range(minx, maxx + 1):
+            a = ((y1 - y2) * (x - x2) + (x2 - x1) * (y - y2)) / d
+            b = ((y2 - y0) * (x - x2) + (x0 - x2) * (y - y2)) / d
+            c = 1.0 - a - b
+            if a >= -0.15 and b >= -0.15 and c >= -0.15:
+                idx = y * w + x
+                if value > buf[idx]:
+                    buf[idx] = value
+
+
 def render_view(
     walls: dict[str, Wall],
     x: float,
@@ -86,12 +115,34 @@ def render_view(
     near: float = 0.6,
     camera_height: float = 0.55,
     thickness: int = 1,
-    background: int = 0,
+    cones: list[tuple[str, float, float]] | None = None,
+    sky: bool = True,
+    road: bool = True,
+    cone_marks: bool = True,
 ) -> bytes:
-    """Return a grayscale image (bytes, row-major, width*height)."""
+    """Return a grayscale camera-like view (bytes, row-major, width*height).
+
+    The top half is a sky gradient, the bottom is ground; the area between the
+    two wall lines is filled as asphalt, and each cone is drawn as a small
+    tapered marker with a bright band.
+    """
     w = int(width)
     h = int(height)
-    buf = bytearray([background]) * (w * h)
+    buf = bytearray([0]) * (w * h)
+    horizon = h // 2
+
+    # ---- sky / ground gradient -----------------------------------------
+    if sky:
+        for yy in range(h):
+            if yy < horizon:
+                val = 34 + int(36 * (yy / max(1, horizon)))
+            else:
+                val = 14
+            start = yy * w
+            buf[start:start + w] = bytes([val]) * w
+    else:
+        for i in range(w * h):
+            buf[i] = 0
 
     f_px = (w / 2.0) / math.tan(max(1e-3, hfov) / 2.0)
     cy = h / 2.0
@@ -100,6 +151,7 @@ def render_view(
 
     values = {"blue": 90, "yellow": 235}
 
+    # ---- wall lines -----------------------------------------------------
     for name, wall in walls.items():
         value = values.get(name, 160)
         for line in wall.polylines:
@@ -117,6 +169,42 @@ def render_view(
                         v1 = int(round(cy + f_px * (camera_height / bx)))
                         _line(buf, w, h, u0, v0, u1, v1, value, thickness)
                 prev_car = car
+
+    # ---- fill the road between the wall lines ---------------------------
+    if road:
+        for yy in range(horizon, h):
+            row = yy * w
+            lit = [xx for xx in range(w) if buf[row + xx] >= 80]
+            if len(lit) >= 2:
+                lo, hi = min(lit), max(lit)
+                if hi - lo > 2:
+                    for xx in range(lo + 1, hi):
+                        if buf[row + xx] < 80:
+                            buf[row + xx] = 36
+
+    # ---- cone markers ---------------------------------------------------
+    if cone_marks and cones:
+        cvals = {"blue": 90, "yellow": 235, "orange": 160}
+        for tag, px, py in cones:
+            dx, dy = px - x, py - y
+            fx = c * dx + s * dy
+            fy = -s * dx + c * dy
+            if fx < near or fx > max_range:
+                continue
+            u = int(round(w / 2.0 - f_px * (fy / fx)))
+            v = int(round(cy + f_px * (camera_height / fx)))
+            if u < -4 or u > w + 4 or v < horizon or v >= h:
+                continue
+            sz = max(2, min(9, int(20.0 / max(fx, 1.0))))
+            bw = max(1, sz // 3)
+            val = cvals.get(tag, 160)
+            _triangle(buf, w, h, (u - bw, v), (u + bw, v),
+                      (u, v - sz), val)
+            band_y = v - max(1, sz // 2)
+            for xx in range(u - bw, u + bw + 1):
+                if 0 <= xx < w and 0 <= band_y < h:
+                    idx = band_y * w + xx
+                    buf[idx] = 255
 
     return bytes(buf)
 

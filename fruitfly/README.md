@@ -24,25 +24,48 @@ watch the brain light up and the fly body twitch while the car laps.
 blue/yellow cones ──> ordered wall polylines ──> 160x120 "retina"
                                                      │  POST /api/live/frame
                                                      ▼
- /odom ──> pure-pursuit assist + wall guard ──> /cmd      flyscreen (Windows)
-                ▲                                   │            │
-                └──── /fly/motor ◄── JSON ◄──────────┼────────────┘
+ /odom ──> pure-pursuit assist + wall guard ──> /fly/cmd ──> cmd_mux ──> /cmd
+                ▲                                   │                      │
+                └──── /fly/motor ◄── JSON ◄──────────┼──────────────────────┘
                                                     │
- /fly/brain/compressed, /fly/body/compressed, /fly/retina, /fly/walls
+ /fly/brain/compressed, /fly/body/compressed, /fly/retina, /fly/walls, /fly/scenery
                      └──────────── Foxglove ────────┘
 ```
+
+> **This is a separate fun mode.** It publishes `/fly/cmd`, never `/cmd`.
+> `fake run/cmd_mux.py` forwards only the selected source to `/cmd`; the default
+> is `race`. Never run the race `fixed_path_driver.py` and fly mode together.
+> The main race stack and its planning/MPC design are in
+> [`2.3-planning-and-control/README.md`](../2.3-planning-and-control/README.md).
+
+The full main-car autonomy stack (global planning, local planning with four
+strategies, MPC, and CAN output) is specified in
+[`2.3-planning-and-control/README.md`](../2.3-planning-and-control/README.md).
+The `fly_bridge` is the pure-pursuit baseline + fly layer described below.
 
 * **Blue = left wall, yellow = right wall.** Both are ordered by projecting every
   cone onto the FSUK centreline and connecting neighbours of the same colour.
   On the 2023 trackdrive map this produces one closed 99-point polyline per
   colour, with a measured half-width of **1.59–2.43 m** (median 1.94 m).
 * **Virtual collision.** The EUFS vehicle model has no collision world, so the
-  bridge treats `|lateral| > half_width - wall_margin` as a wall hit: it brakes,
-  steers back toward the centreline, publishes `/fly/wall_contact`, and
-  optionally resets the fly.* **The fly's eye** is the wall polylines projected into a pinhole view in the
-  car frame. It never sees the cones as dots; it sees two continuous walls.
+  bridge treats `|lateral| > half_width - car_half_width - wall_margin` as a
+  wall hit. It uses the car's **width**, not just its centre, so the body cannot
+  clip the inside cones. A heading-based prediction (`v * sin(yaw - heading)`)
+  sees a hit coming; an actual violation brakes hard, a prediction only slows.
+* **Cone-hit penalty.** The bridge counts each unique cone the car comes within
+  `cone_hit_radius` of, adds `cone_penalty_s` per hit, and publishes
+  `/fly/cone_hits`, `/fly/penalty_s` and `/fly/lap`. This is competition-style
+  bookkeeping, not a simulator physics change.
+* **The fly's eye** is the wall polylines projected into a pinhole view in the
+  car frame, with road/sky/ground shading and each cone drawn as a tapered
+  marker with a bright band — not two bare lines.
+* **Foxglove scenery** (`/fly/scenery`): an asphalt ribbon with edge lines and a
+  start/finish checker, low barriers with red rails, real tapered cone meshes
+  (blue/yellow/orange + white band + black base), and trees outside the track.
+  An optional sky dome is available with `publish_sky:=true`; setting the 3D
+  panel background to `#87CEEB` is usually better.
 * **Foxglove** gets the brain render, the MuJoCo body, the retina the fly is
-  actually seeing, and the wall markers.
+  actually seeing, the wall lines, and the 3D scenery.
 
 ---
 
@@ -105,13 +128,24 @@ Why: WSL mirrored networking lets Linux reach Windows' `localhost`, but the
 Docker container cannot. The relay is the smallest bridge that works without
 exposing flyscreen on `0.0.0.0`.
 
-### 2.4 Build and run the bridge (container, terminal 3)
+### 2.4 Build and run the fly mode (container, terminal 3)
 
 ```bash
+# 1) build once
 cd /workspaces/autonomous-driving-crash-course/fruitfly/ros2_ws
 source /opt/ros/humble/setup.bash
 colcon build --symlink-install
-source install/setup.bash
+
+# 2) one command: mux in fly mode + fly bridge (publishes /fly/cmd)
+bash /workspaces/autonomous-driving-crash-course/fruitfly/tools/start_fly_mode.sh
+```
+
+The explicit version is:
+
+```bash
+python3 "/workspaces/autonomous-driving-crash-course/fake run/cmd_mux.py" \
+    --ros-args -p mode:=fly
+source /workspaces/autonomous-driving-crash-course/fruitfly/ros2_ws/install/setup.bash
 ros2 launch fly_bridge fly_bridge.launch.py
 ```
 
@@ -122,6 +156,15 @@ ros2 topic echo /fly/status
 ```
 
 A healthy line contains `"fly_connected": true` and a non-zero `motor.steer`.
+
+> Do **not** run `fake run/fixed_path_driver.py` in fly mode. The mux stays in
+> charge: `mode:=fly` forwards the fly, `mode:=race` (default) forwards the race
+> driver. Use `ros2 topic pub /control_mode std_msgs/String "{data: race}"` to
+> switch back at runtime. If the race stack or a mux is already running, stop it
+> first: `bash "fake run/stop_race_mode.sh"`.
+>
+> Stop fly mode (container side): `bash fruitfly/tools/stop_fly_mode.sh`.
+> Stop the Windows flyscreen/relay with Ctrl-C in their windows.
 
 ### 2.5 Foxglove
 
@@ -135,9 +178,16 @@ Add these panels:
 |---|---|
 | `/fly/brain/compressed` | Image — the brain point cloud |
 | `/fly/body/compressed` | Image — the MuJoCo fly |
-| `/fly/retina` | Image — what the fly sees (mono8) |
-| `/fly/walls` | 3D — blue/yellow walls + green car dot |
-| `/odom`, `/cmd` | 3D / Raw Messages |
+| `/fly/retina` | Image — what the fly sees (mono8, road + cone shapes) |
+| `/fly/scenery` | 3D — road, barriers, real cone meshes, trees |
+| `/fly/walls` | 3D — blue/yellow wall lines + green car dot |
+| `/fly/cone_hits`, `/fly/penalty_s`, `/fly/lap` | Raw Messages / plots |
+| `/odom`, `/cmd`, `/fly/cmd` | 3D / Raw Messages |
+
+The default EUFS Foxglove extension also draws cones (cylinders). Our meshes
+are slightly larger and cover them; hide the extension's cone display if you
+want only the realistic cones. Set the 3D panel background to `#87CEEB` for a
+sky, or run with `publish_sky:=true` for a sky dome.
 
 `/camera/cones` and `/cones` are still available for the normal EUFS workflow.
 
@@ -156,20 +206,27 @@ ros2 run fly_bridge fly_bridge --ros-args -p mode:=assist -p fly_steer_gain:=0.1
 | `mode` | `assist` | `assist` = fly bias + pursuit; `fly` = fly steering only (chaotic); `pursuit` = ignore the fly |
 | `fly_url` | `http://172.17.0.1:8780` | flyscreen live API via the WSL relay |
 | `target_speed` | `3.0` m/s | pursuit speed before curvature slowdown and fly wish |
-| `lookahead` | `4.0` m | pure-pursuit lookahead |
-| `fly_steer_gain` | `0.18` rad | how much of the fly's `steer` reaches the wheel |
-| `fly_speed_gain` | `2.0` m/s | how much `throttle-0.5` moves the target speed |
-| `wall_margin` | `0.35` m | start braking this far inside the cone line |
+| `lookahead`, `lookahead_min`, `lookahead_gain` | `4.0`, `2.5`, `0.35` | speed-dependent lookahead; shorter at low speed so it does not cut corners |
+| `k_lat` | `0.6` | Stanley-style cross-track correction added to pure pursuit |
+| `car_half_width` | `0.75` m | keeps the whole car inside the cone line, not just the centre |
+| `wall_margin` | `0.35` m | gap between the car edge and the cone line |
+| `predict_horizon`, `predict_margin` | `0.4` s, `0.15` m | heading-based early warning |
+| `lat_slowdown` | `0.5` | fraction of target speed lost near the wall |
+| `cone_hit_radius` | `0.95` m | cone-hit detection radius (car half-width + cone) |
+| `cone_penalty_s` | `5.0` s | penalty added per unique cone hit |
 | `wall_guard` | `true` | enable the virtual wall |
 | `reset_on_wall` | `false` | reset the fly brain after a wall hit |
 | `publish_images` | `true` | republish brain/body JPEGs to ROS |
+| `publish_scenery` | `true` | publish road/barriers/cones/trees on `/fly/scenery` |
+| `publish_sky` | `false` | add the sky dome (can affect 3D panel framing) |
 
 Good first experiments:
 
 * `mode:=fly` to see the raw connectome drive (expect a crash quickly).
 * `fly_steer_gain:=0.35` to give the fly more authority while keeping the assist.
 * `target_speed:=2.0` for a calmer first run.
-* `wall_margin:=0.6` to keep further from the cones.
+* `wall_margin:=0.2` to use more of the track (watch `/fly/cone_hits`).
+* `publish_sky:=true` for the sky dome, or set the 3D panel background instead.
 
 ---
 
@@ -179,14 +236,18 @@ Good first experiments:
 
 | Topic | Type | Rate | Content |
 |---|---|---|---|
-| `/cmd` | `ackermann_msgs/AckermannDriveStamped` | 20 Hz | assist + fly command |
+| `/fly/cmd` | `ackermann_msgs/AckermannDriveStamped` | 20 Hz | assist + fly command; the mux forwards it in fly mode |
 | `/fly/motor` | `std_msgs/Float32MultiArray` | 20 Hz | `[steer, accel, target_speed, lateral, half_width, s, fly_left, fly_right, fly_wing, fly_throttle, contact]` |
-| `/fly/wall_contact` | `std_msgs/Bool` | 20 Hz | virtual wall hit |
-| `/fly/status` | `std_msgs/String` (JSON) | 1 Hz | mode, connectivity, motor, speed, contacts |
+| `/fly/wall_contact` | `std_msgs/Bool` | 20 Hz | virtual wall hit/warning |
+| `/fly/cone_hits` | `std_msgs/Int32` | 20 Hz | unique cone hits this lap |
+| `/fly/penalty_s` | `std_msgs/Float32` | 20 Hz | time penalty this lap |
+| `/fly/lap` | `std_msgs/Int32` | 20 Hz | completed laps |
+| `/fly/status` | `std_msgs/String` (JSON) | 1 Hz | mode, connectivity, motor, speed, contacts, hits, penalty, laps |
 | `/fly/brain/compressed` | `sensor_msgs/CompressedImage` (jpeg) | ~10 Hz | brain point cloud |
 | `/fly/body/compressed` | `sensor_msgs/CompressedImage` (jpeg) | ~10 Hz | MuJoCo body |
 | `/fly/retina` | `sensor_msgs/Image` (`mono8`) | ~15 Hz | the fly's eye |
 | `/fly/walls` | `visualization_msgs/MarkerArray` | latched + 5 s | blue/yellow walls, car dot |
+| `/fly/scenery` | `visualization_msgs/MarkerArray` | latched + 10 s | road, barriers, cone meshes, trees, optional sky |
 
 ### Subscribed
 
@@ -212,8 +273,9 @@ fruitfly/
 │   └── install.ps1
 ├── ros2_ws/src/fly_bridge/
 │   ├── fly_bridge/track.py      # cone ordering, walls, lateral queries
-│   ├── fly_bridge/vision.py     # wall polylines -> 160x120 retina
-│   ├── fly_bridge/control.py    # pure pursuit + fly bias + wall guard
+│   ├── fly_bridge/vision.py     # road/sky/ground + cone shapes -> retina
+│   ├── fly_bridge/scenery.py    # 3D road, barriers, cone meshes, trees, sky
+│   ├── fly_bridge/control.py    # pure pursuit + Stanley + predictive wall
 │   ├── fly_bridge/http_client.py
 │   ├── fly_bridge/node.py       # ROS node + HTTP worker
 │   ├── config/fly_bridge.yaml
@@ -223,6 +285,8 @@ fruitfly/
 │   ├── wsl_relay.py             # WSL -> Windows TCP relay
 │   ├── start_relay.ps1/.cmd
 │   ├── start_flyscreen_live.ps1/.cmd
+│   ├── start_fly_mode.sh        # mux (fly) + fly bridge, one command
+│   ├── stop_fly_mode.sh         # stop mux + fly bridge in the container
 │   ├── test_track.py            # offline: walls, retina, control
 │   ├── test_live_api.py         # live HTTP API smoke test
 │   ├── test_drive_loop.py       # full brain/body motor test
@@ -298,9 +362,16 @@ ROS (container, after starting the sim and bridge):
 python3 fruitfly/tools/ros_probe.py --seconds 10 --verbose
 ```
 
-A good run shows `cmd ~20 Hz`, `brain/body/retina` messages, and lateral offsets
-inside the measured half-width. In the verification run the car held
-`|lateral| <= 0.64 m` over ~100 m at ~2.3 m/s with `contact_count = 0`.
+A good run shows `cmd ~20 Hz`, `brain/body/retina/scenery` messages, and lateral
+offsets inside the measured half-width. In the final verification run the car
+completed a lap with **0 cone hits, 0 s penalty**, `|lateral| <= 0.4 m`, and no
+false wall warnings at 2.3–3.3 m/s. (The earlier, loose wall guard had allowed
+the car's *edge* to clip cones even when its centre looked fine; that is fixed
+by subtracting `car_half_width` from the limit.)
+
+The `2.3-planning-and-control/README.md` document specifies the full
+global/local planning stack, the four planning strategies, and an MPC that
+replaces this pure-pursuit baseline and outputs CAN signals.
 
 ---
 
@@ -313,8 +384,10 @@ inside the measured half-width. In the verification run the car held
    `python3 -c 'import urllib.request; print(urllib.request.urlopen("http://172.17.0.1:8780/api/state").read())'`.
 
 **The car does not move** — the `control_input` plugin has a 0.3 s deadman.
-Check `/cmd` is publishing at 20 Hz (`ros_probe.py`) and that the sim got
-`/set_mission {mission: 4}` + `/go` *after* the track finished loading.
+Check `/fly/cmd` is publishing at 20 Hz (`ros_probe.py`), that the mux is
+running with `mode:=fly`, and that the sim got `/set_mission {mission: 4}` +
+`/go` *after* the track finished loading. In race mode the mux needs
+`mode:=race` and the race driver, not the fly.
 
 **The body is on its back** — that is the default pure-physics behaviour. Start
 flyscreen with `--posture 0.1` (it stays upright for a few seconds; 0.3 is

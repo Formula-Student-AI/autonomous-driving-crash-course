@@ -69,7 +69,8 @@ def main() -> int:
     # --- vision ----------------------------------------------------------
     front = track.heading_at(0.0)
     x0, y0 = track.point_at(0.0)
-    img = render_view(track.walls, x0, y0, front, 160, 120)
+    img = render_view(track.walls, x0, y0, front, 160, 120,
+                      cones=track.cones)
     nonzero = sum(1 for v in img if v)
     hist = {}
     for v in img:
@@ -89,19 +90,31 @@ def main() -> int:
     pp = PurePursuit(track, cfg)
     cmd = pp.command(x0, y0, front, 0.0)
     print(f"on centreline: steer={cmd.steer:+.3f} accel={cmd.accel:+.2f} "
-          f"contact={cmd.wall_contact} lat={cmd.lateral:+.2f}")
+          f"contact={cmd.wall_contact} lat={cmd.lateral:+.2f} "
+          f"limit={cmd.half_width - cfg.car_half_width - cfg.wall_margin:+.2f}")
     if abs(cmd.steer) > 0.15 or cmd.wall_contact:
         print("FAIL: on-centreline command is not gentle")
         ok = False
 
-    # offset to the left of the centreline by 1.5 m -> steer right (negative)
+    # a modest offset should correct without braking
     nx, ny = math.cos(front + math.pi / 2), math.sin(front + math.pi / 2)
+    xm, ym = x0 + 0.5 * nx, y0 + 0.5 * ny
+    cmd_m = pp.command(xm, ym, front, 0.0)
+    print(f"0.5 m left: steer={cmd_m.steer:+.3f} accel={cmd_m.accel:+.2f} "
+          f"contact={cmd_m.wall_contact} lat={cmd_m.lateral:+.2f}")
+    if cmd_m.steer >= 0 or cmd_m.wall_contact:
+        print("FAIL: a 0.5 m offset should steer right without wall contact")
+        ok = False
+
+    # with a car half-width of 0.75 m, 1.5 m left means the car edge is past
+    # the cone line -> contact + brake
     xl, yl = x0 + 1.5 * nx, y0 + 1.5 * ny
     cmd_l = pp.command(xl, yl, front, 0.0)
     print(f"1.5 m left: steer={cmd_l.steer:+.3f} accel={cmd_l.accel:+.2f} "
-          f"contact={cmd_l.wall_contact} lat={cmd_l.lateral:+.2f} half={cmd_l.half_width:.2f}")
-    if cmd_l.steer >= 0:
-        print("FAIL: left offset should steer right (negative)")
+          f"contact={cmd_l.wall_contact} lat={cmd_l.lateral:+.2f} "
+          f"half={cmd_l.half_width:.2f}")
+    if not cmd_l.wall_contact or cmd_l.accel >= 0:
+        print("FAIL: a 1.5 m offset should be treated as a wall hit")
         ok = False
 
     # beyond the wall -> contact + brake

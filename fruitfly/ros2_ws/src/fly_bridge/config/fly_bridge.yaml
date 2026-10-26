@@ -5,6 +5,12 @@ fly_bridge:
     # fruitfly/tools/start_relay.ps1.
     fly_url: "http://172.17.0.1:8780"
 
+    # The fly is a SEPARATE FUN MODE. It writes /fly/cmd, not /cmd.
+    # Run `python3 "fake run/cmd_mux.py" --ros-args -p mode:=fly` to forward
+    # it to the simulator. The main race driver writes /race/cmd and is
+    # selected with mode:=race. Never bypass the mux in race mode.
+    cmd_topic: "/fly/cmd"
+
     # assist = fly biases the pure-pursuit driver (recommended)
     # fly    = fly motor signal is the steering command (chaotic)
     # pursuit= ignore the fly, just drive the centreline
@@ -27,11 +33,14 @@ fly_bridge:
     # Controller
     control_rate: 20.0
     lookahead: 4.0
+    lookahead_min: 2.5
+    lookahead_gain: 0.35
     wheelbase: 1.58
     target_speed: 3.0
     max_steer: 0.5
     max_accel: 3.0
     max_brake: 5.0
+    k_lat: 0.6
 
     # Fly authority
     fly_steer_gain: 0.18
@@ -39,12 +48,30 @@ fly_bridge:
     fly_require_fresh_s: 2.0
 
     # Virtual walls (blue = left, yellow = right)
+    # Keep the whole car inside the cone line, not just its centre.
     wall_guard: true
+    car_half_width: 0.75
     wall_margin: 0.35
     wall_steer: 0.45
     wall_brake: 5.0
+    predict_horizon: 0.4
+    predict_margin: 0.15
+    lat_slowdown: 0.5
     reset_on_wall: false
+
+    # Cone-hit time penalty (competition-style accounting)
+    cone_hit_radius: 0.95
+    cone_penalty_s: 5.0
+    lap_min_s: 10.0
 
     # Brain/body images for Foxglove
     publish_images: true
     image_rate: 10.0
+
+    # 3D scenery for Foxglove: road, barriers, real cone meshes, trees.
+    # The sky dome is optional; setting the 3D panel background to #87CEEB is
+    # cheaper and does not affect the panel's auto-framing.
+    publish_scenery: true
+    scenery_trees: true
+    publish_sky: false
+    scenery_rate: 10.0
