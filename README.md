@@ -27,6 +27,7 @@ Read it left to right: **sensors** see the world, **perception** turns raw data 
 | 2.3 | [Planning & Control](2.3-planning-and-control/) | Make the car follow the track |
 
 **How to use it:** do Modules 0 and 1 in order. Then try **at least one** of the 2.x modules in any order. They are tasters; each shows what working in that team is really like. They do not depend on each other.
+**If you haven't learnt Git version control** then visit [Git Version Control Guide](0-environment-setup/GIT.md)
 
 ## If you have not done much programming
 
@@ -38,6 +39,5 @@ Naturally I would recommend using LLMs to find specific information you need how
 |---|---|
 | **Python** - most of what you will write here, including every Module 1 exercise | the [official Python tutorial](https://docs.python.org/3/tutorial/) |
 | **C++** - the simulator, plannning control and SLAM | [learncpp.com](https://www.learncpp.com/) — thorough and free. Chapters 1–8 are plenty to begin with |
-| **The terminal, and git** | [MIT's The Missing Semester](https://missing.csail.mit.edu/), the practical skills no one teaches you |
 | **ROS** | [ROS 2 Humble tutorials](https://docs.ros.org/en/humble/Tutorials.html), but start with [Module 1](1-introduction-to-ros/) — it is shorter and uses our car |
 
