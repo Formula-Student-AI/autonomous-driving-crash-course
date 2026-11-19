@@ -1,5 +1,5 @@
 // FSAI cone-map centreline planner and lap tracker. C++17, standard library only.
-// Free-form figure eight: c++ -std=c++17 -O2 fsai_path_planner.cpp -o planner
+// Free-form figure eight: c++ -std=c++17 -O2 midpoint_small_vector_output.cpp -o planner
 // ./planner --figure8 0.60 < figure8_original.txt > route.json
 // The argument is a minimum distance (m) from each OUTPUT segment to every cone
 // centre. Select it from your geometry. Vehicle body, steering and dynamics are
